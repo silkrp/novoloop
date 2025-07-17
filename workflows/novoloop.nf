@@ -7,7 +7,10 @@ include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_novoloop_pipeline'
 
-include { FASTPLONG         } from '../modules/local/fastplong/main'
+include { FASTPLONG             } from '../modules/local/fastplong/main'
+include { SAMTOOLS_VIEW         } from '../modules/local/samtools/view/main'
+include { BEDTOOLS_BAMTOFASTQ   } from '../modules/local/bedtools/bamtofastq/main'
+
 include { FLYE              } from '../modules/local/flye/main'
 include { SEQTK_SUBSEQ      } from '../modules/local/seqtk/subseq/main'
 include { MEDAKA            } from '../modules/nf-core/medaka/main'
@@ -38,25 +41,48 @@ workflow NOVOLOOP {
 
     main: 
 
+    //
+    // Run FASTPLONG for long read pre-processing
+    //
     ch_lr_samplesheet = ch_samplesheet
-        .map({ meta, lr_fastq, sr_fastq1, sr_fastq2 -> [ meta, lr_fastq ] })
+        .map({ meta, lr_fastq, lr_bam, lr_index, lr_cnvs, sr_fastq1, sr_fastq2 -> [ meta, lr_fastq ] })
 
     ch_sr_samplesheet = ch_samplesheet
-        .map({ meta, lr_fastq, sr_fastq1, sr_fastq2 -> [ meta, sr_fastq1, sr_fastq2 ] })
-
-
-    //
-    // Run fastplong to preprocess reads 
-    //
+        .map({ meta, lr_fastq, lr_bam, lr_index, lr_cnvs, sr_fastq1, sr_fastq2 -> [ meta, sr_fastq1, sr_fastq2 ] })
+    
     FASTPLONG (
         ch_lr_samplesheet
     )
 
     //
+    // Run read preprocessing of long reads
+    //
+    if ( params.bam ) {
+
+        samtools_view_input = ch_samplesheet
+            .map({ meta, lr_fastq, lr_bam, lr_index, lr_cnvs, sr_fastq1, sr_fastq2 -> [ meta, lr_bam, lr_index, lr_cnvs ] })
+
+        SAMTOOLS_VIEW (
+            samtools_view_input
+        )
+
+        BEDTOOLS_BAMTOFASTQ (
+            SAMTOOLS_VIEW.out.bam
+        )
+
+        preprocessed_reads = BEDTOOLS_BAMTOFASTQ.out.fastq
+
+    } else {
+
+        preprocessed_reads = FASTPLONG.out.reads
+
+    }
+
+    //
     // Run de-novo assembly
     //
     FLYE (
-        FASTPLONG.out.reads,
+        preprocessed_reads,
         "--nano-hq"
     )
 

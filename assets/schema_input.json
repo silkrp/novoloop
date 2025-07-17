@@ -20,6 +20,20 @@
                 "pattern": "^\\S+\\.f(ast)?q\\.gz$",
                 "errorMessage": "FastQ file for reads 1 must be provided, cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'"
             },
+            "bam": {
+                "type": "string",
+                "format": "file-path",
+                "exists": true,
+                "pattern": "^\\S+\\.bam$",
+                "errorMessage": "BAM file cannot contain spaces and must have extension '.bam'"
+            },
+            "cnvs": {
+                "type": "string",
+                "format": "file-path",
+                "exists": true,
+                "pattern": "^\\S+\\.bed$",
+                "errorMessage": "CNV BED file cannot contain spaces and must have extension '.bed'"
+            },
             "sr_fastq_1": {
                 "type": "string",
                 "format": "file-path",
