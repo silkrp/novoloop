@@ -49,113 +49,92 @@ workflow NOVOLOOP {
     ch_sr_samplesheet = ch_samplesheet
         .map({ meta, lr_fastq, lr_bam, lr_index, sr_fastq1, sr_fastq2 -> [ meta, sr_fastq1, sr_fastq2 ] })
     
+    FASTP(
+        ch_sr_samplesheet
+    )
+
     FASTPLONG (
         ch_lr_samplesheet
     )
 
-    //
-    // Run read preprocessing of long reads
-    //
-    if ( params.bam ) {
+    preprocessed_reads = FASTP.out.fastq
+        .join(FASTPLONG.out.reads)
+        .view()
 
-        samtools_view_input = ch_samplesheet
-            .map({ meta, lr_fastq, lr_bam, lr_index, sr_fastq1, sr_fastq2 -> [ meta, lr_bam ] })
+    // UNICYCLER (
+    //     preprocessed_reads
+    // )
 
-        // TODO nf-core: could it help to prefilter the bam file to amplicon regions?
-        // SAMTOOLS_VIEW (
-        //     samtools_view_input
-        // )
+    // //
+    // // Long read polishing
+    // //
+    // medaka_input = FASTPLONG.out.reads
+    //     .join(FLYE.out.fasta)
 
-        BEDTOOLS_BAMTOFASTQ (
-            samtools_view_input
-        )
+    // MEDAKA (
+    //     medaka_input
+    // )
 
-        preprocessed_reads = BEDTOOLS_BAMTOFASTQ.out.fastq
+    // //
+    // // FASTP for short-read pre-processing
+    // // 
+    // FASTP (
+    //     ch_sr_samplesheet
+    // )
 
-    } else {
+    // //
+    // // Unzip fastq file
+    // //
+    // GUNZIP (
+    //     MEDAKA.out.assembly
+    // )
 
-        preprocessed_reads = FASTPLONG.out.reads
+    // //
+    // // Short read polishing
+    // //
+    // // this needs to be the format [meta, [R1.fastq, R2.fastq], assembly]
+    // nextpolish_input = FASTP.out.fastq
+    //     .join(GUNZIP.out.gunzip)
 
-    }
+    // NEXTPOLISH (
+    //     nextpolish_input
+    // )
 
-    //
-    // Run de-novo assembly
-    //
-    FLYE (
-        preprocessed_reads,
-        "--nano-hq"
-    )
+    // // 
+    // // Strainy to get different ecDNAs? 
+    // //
 
-    //
-    // Long read polishing
-    //
-    medaka_input = FASTPLONG.out.reads
-        .join(FLYE.out.fasta)
+    // //
+    // // Index reference genome
+    // //
+    // MINIMAP2_INDEX (
+    //     ch_reference
+    // )  
 
-    MEDAKA (
-        medaka_input
-    )
+    // //
+    // // Realign contigs back to reference genome
+    // //
+    // MINIMAP2_ALIGN (
+    //     NEXTPOLISH.out.assembly,
+    //     MINIMAP2_INDEX.out.index, 
+    //     true,
+    //     'bai',
+    //     false,
+    //     false
+    // )
 
-    //
-    // FASTP for short-read pre-processing
-    // 
-    FASTP (
-        ch_sr_samplesheet
-    )
+    // //
+    // // Get mapping locations of circular contigs
+    // //
+    // BEDTOOLS_BAMTOBED_BED (
+    //     MINIMAP2_ALIGN.out.bam,
+    //     false
+    // )
 
-    //
-    // Unzip fastq file
-    //
-    GUNZIP (
-        MEDAKA.out.assembly
-    )
-
-    //
-    // Short read polishing
-    //
-    // this needs to be the format [meta, [R1.fastq, R2.fastq], assembly]
-    nextpolish_input = FASTP.out.fastq
-        .join(GUNZIP.out.gunzip)
-
-    NEXTPOLISH (
-        nextpolish_input
-    )
-
-    // 
-    // Strainy to get different ecDNAs? 
-    //
-
-    //
-    // Index reference genome
-    //
-    MINIMAP2_INDEX (
-        ch_reference
-    )  
-
-    //
-    // Realign contigs back to reference genome
-    //
-    MINIMAP2_ALIGN (
-        NEXTPOLISH.out.assembly,
-        MINIMAP2_INDEX.out.index, 
-        true,
-        'bai',
-        false,
-        false
-    )
-
-    //
-    // Get mapping locations of circular contigs
-    //
-    BEDTOOLS_BAMTOBED_BED (
-        MINIMAP2_ALIGN.out.bam,
-        false
-    )
-
-    BEDTOOLS_BAMTOBED_BED12 (
-        MINIMAP2_ALIGN.out.bam,
-        true
-    )
+    // BEDTOOLS_BAMTOBED_BED12 (
+    //     MINIMAP2_ALIGN.out.bam,
+    //     true
+    // )
 
 
 
