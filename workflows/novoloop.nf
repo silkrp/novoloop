@@ -12,7 +12,6 @@ include { SAMTOOLS_VIEW         } from '../modules/local/samtools/view/main'
 include { BEDTOOLS_BAMTOFASTQ   } from '../modules/local/bedtools/bamtofastq/main'
 
 include { FLYE              } from '../modules/local/flye/main'
-include { SEQTK_SUBSEQ      } from '../modules/local/seqtk/subseq/main'
 include { MEDAKA            } from '../modules/nf-core/medaka/main'
 include { GUNZIP            } from '../modules/nf-core/gunzip/main'
 include { FASTP             } from '../modules/local/fastp/main'
@@ -87,20 +86,10 @@ workflow NOVOLOOP {
     )
 
     //
-    // Restrict to circular contigs
-    //
-    filter_to_circular_input = FLYE.out.fasta
-        .join(FLYE.out.txt)
-
-    SEQTK_SUBSEQ (
-        filter_to_circular_input
-    )
-
-    //
     // Long read polishing
     //
     medaka_input = FASTPLONG.out.reads
-        .join(SEQTK_SUBSEQ.out.sequences)
+        .join(FLYE.out.fasta)
 
     MEDAKA (
         medaka_input
