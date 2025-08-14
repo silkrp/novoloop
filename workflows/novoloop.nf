@@ -44,10 +44,10 @@ workflow NOVOLOOP {
     // Run FASTPLONG for long read pre-processing
     //
     ch_lr_samplesheet = ch_samplesheet
-        .map({ meta, lr_fastq, lr_bam, lr_index, lr_cnvs, sr_fastq1, sr_fastq2 -> [ meta, lr_fastq ] })
+        .map({ meta, lr_fastq, lr_bam, lr_index, sr_fastq1, sr_fastq2 -> [ meta, lr_fastq ] })
 
     ch_sr_samplesheet = ch_samplesheet
-        .map({ meta, lr_fastq, lr_bam, lr_index, lr_cnvs, sr_fastq1, sr_fastq2 -> [ meta, sr_fastq1, sr_fastq2 ] })
+        .map({ meta, lr_fastq, lr_bam, lr_index, sr_fastq1, sr_fastq2 -> [ meta, sr_fastq1, sr_fastq2 ] })
     
     FASTPLONG (
         ch_lr_samplesheet
@@ -59,14 +59,15 @@ workflow NOVOLOOP {
     if ( params.bam ) {
 
         samtools_view_input = ch_samplesheet
-            .map({ meta, lr_fastq, lr_bam, lr_index, lr_cnvs, sr_fastq1, sr_fastq2 -> [ meta, lr_bam, lr_index, lr_cnvs ] })
+            .map({ meta, lr_fastq, lr_bam, lr_index, sr_fastq1, sr_fastq2 -> [ meta, lr_bam ] })
 
-        SAMTOOLS_VIEW (
-            samtools_view_input
-        )
+        // TODO nf-core: could it help to prefilter the bam file to amplicon regions?
+        // SAMTOOLS_VIEW (
+        //     samtools_view_input
+        // )
 
         BEDTOOLS_BAMTOFASTQ (
-            SAMTOOLS_VIEW.out.bam
+            samtools_view_input
         )
 
         preprocessed_reads = BEDTOOLS_BAMTOFASTQ.out.fastq
