@@ -11,6 +11,8 @@ include { FASTPLONG             } from '../modules/local/fastplong/main'
 include { SAMTOOLS_VIEW         } from '../modules/local/samtools/view/main'
 include { BEDTOOLS_BAMTOFASTQ   } from '../modules/local/bedtools/bamtofastq/main'
 
+include { UNICYCLER         } from '../modules/nf-core/unicycler/main'
+
 include { FLYE              } from '../modules/local/flye/main'
 include { MEDAKA            } from '../modules/nf-core/medaka/main'
 include { GUNZIP            } from '../modules/nf-core/gunzip/main'
