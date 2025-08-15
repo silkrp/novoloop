@@ -61,9 +61,9 @@ workflow NOVOLOOP {
         .join(FASTPLONG.out.reads)
         .view()
 
-    // UNICYCLER (
-    //     preprocessed_reads
-    // )
+    UNICYCLER (
+        preprocessed_reads
+    )
 
     // //
     // // Long read polishing
